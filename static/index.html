@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<link rel="shortcut icon" href="img/kurento.png" type="image/png"/>
+
+	<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+	<link rel="stylesheet" href="bower_components/demo-console/index.css">
+	<link rel="stylesheet" href="bower_components/ekko-lightbox/dist/ekko-lightbox.min.css">
+	<link rel="stylesheet" href="css/kurento.css">
+
+	<script src="bower_components/adapter.js/adapter.js"></script>
+	<script src="bower_components/jquery/dist/jquery.min.js"></script>
+	<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+	<script src="bower_components/demo-console/index.js"></script>
+	<script src="bower_components/draggabilly/dist/draggabilly.pkgd.min.js"></script>
+	<script src="bower_components/ekko-lightbox/dist/ekko-lightbox.min.js"></script>
+
+	<script src="bower_components/kurento-utils/js/kurento-utils.js"></script>
+
+	<script src="js/index.js"></script>
+	<title>SIP / Kurento Call</title>
+</head>
+<body>
+
+	<header>
+		<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="container">
+				<div class="collapse navbar-collapse"
+				id="bs-example-navbar-collapse-1">
+			</div>
+		</div>
+	</div>
+</header>
+
+<div class="container">
+	<div class="page-header">
+		<h1>SIP / Kurento  Call</h1>
+	</div>
+	<div class="row">
+		<div class="col-md-5">
+			<div class="row">
+				<div class="col-md-6">
+					<div class="sip-container" id="sip-usr">
+						<label class="control-label" for="ext">Extension</label>
+						<input id="ext" name="ext" class="form-control" type="text" value="2000"/>
+						<label class="control-label" for="password">Password</label>
+						<input id="password" name="password" class="form-control" type="password" value="asteriskpwd"/>
+					</div>
+				</div>
+				<div class="col-md-6 text-right">
+					<a id="register" href="#" class="btn btn-primary">
+						<span class="glyphicon glyphicon-plus"></span> Register
+					</a>
+				</div>
+			</div>
+			<br/>
+			<br/>
+			<div class="row">
+				<div class="col-md-6">
+					<div class="sip-container" id="sip-peer">
+						<label class="control-label" for="peer">Peer</label>
+						<input id="peer" name="peer" class="form-control" type="text" value="2000"/>
+					</div>
+				</div>
+				<div class="col-md-6 text-right">
+					<a id="call" href="#" class="btn btn-success">
+						<span class="glyphicon glyphicon-play"></span> Call
+					</a>
+					<a id="terminate" href="#" class="btn btn-danger">
+						<span class="glyphicon glyphicon-stop"></span> Stop
+					</a>
+				</div>
+			</div>
+			<br/>
+			<label class="control-label" for="console">Console</label><br><br>
+			<div id="console" class="democonsole">
+				<ul></ul>
+			</div>
+		</div>
+		<div class="col-md-7">
+			<div id="videoBig">
+				<video id="videoOutput" autoplay width="640px" height="480px" poster="img/webrtc.png"></video>
+			</div>
+			<div id="videoSmall">
+				<video id="videoInput" autoplay width="240px" height="180px" poster="img/webrtc.png"></video>
+			</div>
+		</div>
+	</div>
+</div>
+
+<footer>
+	<div class="foot-fixed-bottom">
+		<div class="container text-center">
+		</div>
+	</div>
+</footer>
+
+</body>
+</html>
