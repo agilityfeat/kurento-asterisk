@@ -32,6 +32,8 @@ var argv = minimist(process.argv.slice(2), {
   }
 });
 
+const OVERLAY_URL = 'https://github.com/Kurento/kurento-tutorial-node/raw/master/kurento-magic-mirror/static/img/mario-wings.png';
+
 var options =
 {
   key:  fs.readFileSync('keys/server.key'),
@@ -117,6 +119,11 @@ UserRegistry.prototype.removeById = function(id) {
     delete this.usersByExt[userSession.ext];
 }
 
+/* **************************************************
+    We implemented a custom media handler for SIP.js
+    that would take care of handling session descriptions
+    for the Kurento - Asterisk communication.
+************************************************** */
 function KurentoMediaHandler(ext, session, options) {
   this.session = session;
   this.ext     = ext;
@@ -137,10 +144,8 @@ KurentoMediaHandler.prototype = {
     unmute: new Function(),
 
     getDescription: function (onSuccess, onFailure, mediaHint) {
-        console.log(`getDescription[${this.ext}]`);
         let user = userRegistry.getByExt(this.ext);
         if(user.asteriskSdp.type === 'answer') {
-            console.log(`getDescription[${this.ext}]:success(answer)`);
             onSuccess(user.asteriskSdp.value);
         } else if (user.pipeline) {
             user.pipeline.rtpEndPoint.processOffer(user.asteriskSdp.value).then(onSuccess).catch(onFailure);
@@ -148,7 +153,6 @@ KurentoMediaHandler.prototype = {
     },
 
     setDescription: function (desc, onSuccess, onFailure) {
-        console.log(`setDescription[${this.ext}]`);
         let user = userRegistry.getByExt(this.ext);
         user.asteriskSdp = {
             type: 'offer',
@@ -165,6 +169,12 @@ function CallMediaPipeline() {
     this.rtpEndPoint = null;
 }
 
+
+/* *****************************
+    We implemented a simple Kurento media pipeline with a WebRtcEndpoint to 
+    connect to the web client, a RtpEndpoint to connect to Asterisk and a 
+    FaceOverlayFilter to apply the overlay image on top of the video stream
+    *************************** */
 CallMediaPipeline.prototype.createPipeline = function(userId, ws, callback) {
     var self = this;
     getKurentoClient(function(error, kurentoClient) {
@@ -194,11 +204,6 @@ CallMediaPipeline.prototype.createPipeline = function(userId, ws, callback) {
                 webEndPoint.on('ConnectionStateChanged', (evt) => {
                     console.log(`WebRTCEndpoint(${user.ext})`, `${evt.oldState} => ${evt.newState}`)
                 });
-
-                // rtpEndPoint.on('MediaStateChanged', (evt) => {
-                //     console.log('WebRTCEndpoint[ICE]', `${evt.state}`)
-                // });
-
                 
                 if (error) {
                     pipeline.release();
@@ -220,10 +225,8 @@ CallMediaPipeline.prototype.createPipeline = function(userId, ws, callback) {
                     }));
                 });
 
-                const url = 'https://github.com/Kurento/kurento-tutorial-node/raw/master/kurento-magic-mirror/static/img/mario-wings.png';
-
                 let promises = [
-                    faceFilter.setOverlayedImage(url, -0.35, -1.2, 1.6, 1.6),
+                    faceFilter.setOverlayedImage(OVERLAY_URL, -0.35, -1.2, 1.6, 1.6),
                     
                     webEndPoint.connect(faceFilter),
                     rtpEndPoint.connect(webEndPoint),
@@ -367,15 +370,21 @@ function incomingCallResponse(calleeId, callResponse, calleeSdp, ws) {
 
     if (callResponse === 'accept') {
         createCallPipeline(callee, (error, sdpAnswer) => {
+
+            /* ***************************************************
+                If the callee accepted the call, a Kurento media 
+                pipeline is created and the RTPEndPoint processes 
+                the SDP offer we got from Asterisk
+            *************************************************** */
             callee.pipeline.rtpEndPoint.processOffer(callee.asteriskSdp.value).then((answer) => {
                 callee.asteriskSdp = {
                     type: 'answer', 
                     value: answer
                 };
-                console.log('Accepting session!');
                 callee.session.accept();
             });
             
+            // We let the client know everything's ready to begin streaming
             var message = {
                 id: 'startCommunication',
                 sdpAnswer
@@ -430,6 +439,7 @@ function setupCallSession(user) {
         }
     }
     
+    // This can be omitted 
     user.session.on('progress', () => console.log('SESSION: progress'));
     user.session.on('cancel', () => console.log('SESSION: cancel'));
     user.session.on('refer', () => console.log('SESSION: refer'));
@@ -443,8 +453,8 @@ function setupCallSession(user) {
     user.session.on('failed', terminateCall);
     user.session.on('rejected', terminateCall);
 
+    // This would tell a caller that its INVITE was accepted
     user.session.on('accepted', () => {
-        console.log('INVITE Accepted!');
         let message = {
             id: 'callResponse',
             response : 'accepted',
@@ -453,6 +463,7 @@ function setupCallSession(user) {
         user.sendMessage(message);
     });
 
+    // Afterwards a Kurento media pipeline is created to initiate communication
     createCallPipeline(user, (error, sdpAnswer) => {
         if(error) {
             if(user.pipeline) user.pipeline.release();
@@ -483,6 +494,11 @@ function call(callerId, to, sdpOffer) {
         }
     }
 
+    /* ***************************************************
+        When a call is originated on the web client, an INVITE
+        is sent to Asterisk, where it will routed to its 
+        destination or handled according to the dial plan
+    *************************************************** */
     if(!caller.session) {
         console.log(`${caller.ext} calling ${to} ...`);
         var session = caller.ua.invite(`sip:${to}@${sipServer}`, {
@@ -500,7 +516,9 @@ function makeHandlerFactory(ext) {
         return new KurentoMediaHandler(ext, session, opts);
     }
 }
-
+/* ***************************************************
+    When a client asks to be registered, a SIP user agent is created 
+*************************************************** */
 function register(id, ext, password, ws, callback) {
     function onError(error) {
         ws.send(JSON.stringify({id:'registerResponse', response : 'rejected ', message: error}));
@@ -522,7 +540,7 @@ function register(id, ext, password, ws, callback) {
         password,
         mediaHandlerFactory: makeHandlerFactory(ext),
         hackIpInContact: true,
-        traceSip: false //(ext === '2001')
+        traceSip: false
     });
     userRegistry.register(new UserSession(id, ext, userAgent, ws));
 
@@ -535,9 +553,13 @@ function register(id, ext, password, ws, callback) {
         }
     });
 
+    /* **********************************
+        When an INVITE message is received, 
+        the web client is notified that there's an 
+        incoming call. The user decides if she accepts
+        it or rejects it/
+    ********************************** */
     userAgent.on('invite', (session) => {
-
-        console.log(`Invite ${ext}`)
 
         var fromExt = 'Anonymous';
         if(session.request.headers.From && session.request.headers.From[0]) {
