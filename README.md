@@ -3,6 +3,6 @@
 # Integration of Kurento with Asterisk
 
 ##### To install this sample follow these steps:
-1) npm install
-2) npm start
-3) open this url in a WebRTC compatible browser: https://localhost:8443/
+1) npm install  
+2) npm start  
+3) open this url in a WebRTC compatible browser: https://localhost:8443/  
